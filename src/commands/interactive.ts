@@ -242,15 +242,14 @@ function showNewWorktreeForm(): void {
 }
 
 function showAIToolSelector(branchName: string): void {
-  const options = ['Claude Code', 'Codex', 'Skip'];
-  let selectedIdx = 0;
+  let handled = false;
 
   const form = blessed.box({
     parent: screen,
     top: 'center',
     left: 'center',
     width: 40,
-    height: 10,
+    height: 9,
     border: { type: 'line' },
     style: { fg: 'default', border: { fg: 'cyan' } },
     label: ' Launch AI Tool '
@@ -264,51 +263,48 @@ function showAIToolSelector(branchName: string): void {
     style: { fg: 'default' }
   });
 
-  const optionBoxes: blessed.Widgets.BoxElement[] = [];
-  options.forEach((opt, i) => {
-    const box = blessed.box({
-      parent: form,
-      top: 3 + i,
-      left: 2,
-      width: 34,
-      height: 1,
-      content: ` ${opt}`,
-      style: { fg: 'default' }
-    });
-    optionBoxes.push(box);
+  blessed.text({
+    parent: form,
+    top: 3,
+    left: 2,
+    content: '  [1] Claude Code',
+    style: { fg: 'default' }
+  });
+
+  blessed.text({
+    parent: form,
+    top: 4,
+    left: 2,
+    content: '  [2] Codex',
+    style: { fg: 'default' }
+  });
+
+  blessed.text({
+    parent: form,
+    top: 5,
+    left: 2,
+    content: '  [3] Skip',
+    style: { fg: 'default' }
   });
 
   blessed.text({
     parent: form,
     top: 7,
     left: 2,
-    content: '[↑/↓] select  [Enter] confirm  [Esc] cancel',
+    content: '[Esc] cancel',
     style: { fg: 'cyan' }
   });
 
-  function updateSelection(): void {
-    optionBoxes.forEach((box, i) => {
-      if (i === selectedIdx) {
-        box.style.bg = 'cyan';
-        box.style.fg = 'black';
-      } else {
-        box.style.bg = 'default';
-        box.style.fg = 'default';
-      }
-    });
-    screen.render();
-  }
-
-  updateSelection();
   form.focus();
+  screen.render();
 
-  const confirmSelection = async (): Promise<void> => {
-    const tool = selectedIdx === 0 ? 'claude' : selectedIdx === 1 ? 'codex' : null;
+  const selectTool = async (tool: AITool | null): Promise<void> => {
+    if (handled) return;
+    handled = true;
     form.destroy();
-    setStatus(`Creating worktree...`);
     screen.render();
     try {
-      await createNewWorktree(branchName, tool as AITool | null);
+      await createNewWorktree(branchName, tool);
     } catch (e: any) {
       setStatus(`Error: ${e.message}`);
       worktreeList.focus();
@@ -316,25 +312,18 @@ function showAIToolSelector(branchName: string): void {
     }
   };
 
-  form.key(['up', 'k'], () => {
-    selectedIdx = (selectedIdx - 1 + options.length) % options.length;
-    updateSelection();
-  });
-
-  form.key(['down', 'j'], () => {
-    selectedIdx = (selectedIdx + 1) % options.length;
-    updateSelection();
-  });
-
-  form.key(['enter'], () => {
-    confirmSelection();
-  });
-
-  form.key(['escape'], () => {
+  const cancel = (): void => {
+    if (handled) return;
+    handled = true;
     form.destroy();
     screen.render();
     worktreeList.focus();
-  });
+  };
+
+  form.key(['1'], () => selectTool('claude'));
+  form.key(['2'], () => selectTool('codex'));
+  form.key(['3'], () => selectTool(null));
+  form.key(['escape'], cancel);
 }
 
 async function createNewWorktree(branchName: string, tool: AITool | null): Promise<void> {
