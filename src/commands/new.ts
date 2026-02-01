@@ -5,7 +5,8 @@ import {
   isGitRepo,
   getGitRoot,
   createWorktree,
-  getWorktreePath
+  getWorktreePath,
+  pushBranch
 } from '../utils/git.js';
 import { copyEnvFiles } from '../utils/env.js';
 import {
@@ -19,6 +20,7 @@ import { selectAITool } from '../ui/selector.js';
 export interface NewCommandOptions {
   install?: boolean;
   skipLaunch?: boolean;
+  push?: boolean;
 }
 
 export async function newCommand(branchName: string, options: NewCommandOptions): Promise<void> {
@@ -48,7 +50,18 @@ export async function newCommand(branchName: string, options: NewCommandOptions)
     process.exit(1);
   }
 
-  // 3. Copy .env files
+  // 3. Push branch to remote if requested
+  if (options.push) {
+    const pushSpinner = ora('Pushing branch to remote...').start();
+    try {
+      await pushBranch(branchName, worktreePath);
+      pushSpinner.succeed(chalk.green(`Pushed ${branchName} to origin`));
+    } catch (error: any) {
+      pushSpinner.fail(chalk.yellow(`Could not push: ${error.message}`));
+    }
+  }
+
+  // 4. Copy .env files
   const envSpinner = ora('Copying .env files...').start();
 
   try {
@@ -62,7 +75,7 @@ export async function newCommand(branchName: string, options: NewCommandOptions)
     envSpinner.warn(chalk.yellow(`Warning: Could not copy env files: ${error.message}`));
   }
 
-  // 4. Optionally run package manager install
+  // 5. Optionally run package manager install
   if (options.install) {
     const packageManager = await detectPackageManager(worktreePath);
     if (packageManager) {
@@ -82,18 +95,18 @@ export async function newCommand(branchName: string, options: NewCommandOptions)
     }
   }
 
-  // 5. Skip launch if requested
+  // 6. Skip launch if requested
   if (options.skipLaunch) {
     console.log(chalk.green(`\n✓ Worktree ready at: ${worktreePath}`));
     console.log(chalk.dim(`  cd "${worktreePath}"`));
     return;
   }
 
-  // 6. Show AI tool selector
+  // 7. Show AI tool selector
   console.log(''); // Empty line for spacing
   const selectedTool = await selectAITool();
 
-  // 7. Check if tool is available
+  // 8. Check if tool is available
   const toolAvailable = await isToolAvailable(selectedTool);
   if (!toolAvailable) {
     console.error(chalk.red(`\nError: ${selectedTool} is not installed or not in PATH`));
@@ -102,7 +115,7 @@ export async function newCommand(branchName: string, options: NewCommandOptions)
     process.exit(1);
   }
 
-  // 8. Launch the selected tool
+  // 9. Launch the selected tool
   console.log(chalk.cyan(`\nLaunching ${selectedTool} in worktree...`));
 
   launchAITool({

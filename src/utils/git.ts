@@ -205,3 +205,11 @@ export async function findWorktree(identifier: string): Promise<WorktreeInfo | u
     wt.path.endsWith(identifier)
   );
 }
+
+/**
+ * Push a branch to remote
+ */
+export async function pushBranch(branchName: string, cwd?: string): Promise<void> {
+  const args = ['push', '-u', 'origin', branchName];
+  await execFileAsync('git', args, cwd ? { cwd } : undefined);
+}

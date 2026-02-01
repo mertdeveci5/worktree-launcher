@@ -12,7 +12,7 @@ const program = new Command();
 program
   .name('wt')
   .description('CLI tool to streamline git worktrees with AI coding assistants')
-  .version('1.1.0')
+  .version('1.2.0')
   .action(async () => {
     // Default action: interactive mode
     await interactiveCommand();
@@ -23,10 +23,12 @@ program
   .description('Create a new worktree and launch AI assistant')
   .option('-i, --install', 'Run package manager install after creating worktree')
   .option('-s, --skip-launch', 'Create worktree without launching AI assistant')
+  .option('-p, --push', 'Push branch to remote (visible on GitHub)')
   .action(async (branchName: string, options) => {
     await newCommand(branchName, {
       install: options.install,
-      skipLaunch: options.skipLaunch
+      skipLaunch: options.skipLaunch,
+      push: options.push
     });
   });
 
