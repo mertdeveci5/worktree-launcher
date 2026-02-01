@@ -242,12 +242,15 @@ function showNewWorktreeForm(): void {
 }
 
 function showAIToolSelector(branchName: string): void {
+  const options = ['Claude Code', 'Codex', 'Skip'];
+  let selectedIdx = 0;
+
   const form = blessed.box({
     parent: screen,
     top: 'center',
     left: 'center',
     width: 40,
-    height: 9,
+    height: 10,
     border: { type: 'line' },
     style: { fg: 'default', border: { fg: 'cyan' } },
     label: ' Launch AI Tool '
@@ -261,44 +264,73 @@ function showAIToolSelector(branchName: string): void {
     style: { fg: 'default' }
   });
 
-  const list = blessed.list({
-    parent: form,
-    top: 3,
-    left: 2,
-    width: 34,
-    height: 3,
-    keys: true,
-    vi: true,
-    style: {
-      selected: { bg: 'cyan', fg: 'black' },
-      item: { fg: 'default' }
-    },
-    items: [' Claude Code', ' Codex', ' Skip']
+  const optionBoxes: blessed.Widgets.BoxElement[] = [];
+  options.forEach((opt, i) => {
+    const box = blessed.box({
+      parent: form,
+      top: 3 + i,
+      left: 2,
+      width: 34,
+      height: 1,
+      content: ` ${opt}`,
+      style: { fg: 'default' }
+    });
+    optionBoxes.push(box);
   });
 
-  list.focus();
-  screen.render();
+  blessed.text({
+    parent: form,
+    top: 7,
+    left: 2,
+    content: '[↑/↓] select  [Enter] confirm  [Esc] cancel',
+    style: { fg: 'cyan' }
+  });
 
-  list.on('select', async (_item: blessed.Widgets.BlessedElement, index: number) => {
-    const tool = index === 0 ? 'claude' : index === 1 ? 'codex' : null;
+  function updateSelection(): void {
+    optionBoxes.forEach((box, i) => {
+      if (i === selectedIdx) {
+        box.style.bg = 'cyan';
+        box.style.fg = 'black';
+      } else {
+        box.style.bg = 'default';
+        box.style.fg = 'default';
+      }
+    });
+    screen.render();
+  }
+
+  updateSelection();
+  form.focus();
+
+  const confirmSelection = async (): Promise<void> => {
+    const tool = selectedIdx === 0 ? 'claude' : selectedIdx === 1 ? 'codex' : null;
     form.destroy();
-    setStatus(`Selected: ${tool ?? 'skip'}, creating worktree...`);
+    setStatus(`Creating worktree...`);
     screen.render();
     try {
-      await createNewWorktree(branchName, tool);
+      await createNewWorktree(branchName, tool as AITool | null);
     } catch (e: any) {
       setStatus(`Error: ${e.message}`);
       worktreeList.focus();
       screen.render();
     }
+  };
+
+  form.key(['up', 'k'], () => {
+    selectedIdx = (selectedIdx - 1 + options.length) % options.length;
+    updateSelection();
   });
 
-  // Also handle enter key explicitly as backup
-  list.key(['enter'], () => {
-    list.emit('select', list.items[list.selected], list.selected);
+  form.key(['down', 'j'], () => {
+    selectedIdx = (selectedIdx + 1) % options.length;
+    updateSelection();
   });
 
-  list.key(['escape'], () => {
+  form.key(['enter'], () => {
+    confirmSelection();
+  });
+
+  form.key(['escape'], () => {
     form.destroy();
     screen.render();
     worktreeList.focus();
@@ -307,14 +339,25 @@ function showAIToolSelector(branchName: string): void {
 
 async function createNewWorktree(branchName: string, tool: AITool | null): Promise<void> {
   setStatus(`Creating ${branchName}...`);
+  screen.render();
 
   try {
     const worktreePath = getWorktreePath(mainRepoPath, branchName);
+    setStatus(`Path: ${worktreePath}`);
+    screen.render();
+
     await createWorktree(worktreePath, branchName);
+    setStatus(`Worktree created, copying .env...`);
+    screen.render();
+
     await copyEnvFiles(mainRepoPath, worktreePath);
+    setStatus(`Done! Refreshing list...`);
+    screen.render();
+
     await refreshWorktrees();
     setStatus(`Created ${branchName}`);
     worktreeList.focus();
+    screen.render();
 
     if (tool) {
       await launchInWorktree(worktreePath, tool);
