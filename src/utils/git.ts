@@ -60,6 +60,18 @@ export async function remoteBranchExists(branchName: string): Promise<boolean> {
 }
 
 /**
+ * Get the current branch name
+ */
+export async function getCurrentBranch(): Promise<string> {
+  try {
+    const { stdout } = await execFileAsync('git', ['rev-parse', '--abbrev-ref', 'HEAD']);
+    return stdout.trim();
+  } catch {
+    return 'HEAD';
+  }
+}
+
+/**
  * Get the default branch (main or master)
  */
 export async function getDefaultBranch(): Promise<string> {

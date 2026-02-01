@@ -3,6 +3,8 @@ import path from 'path';
 import {
   isGitRepo,
   getGitRoot,
+  getCurrentBranch,
+  getDefaultBranch,
   listWorktrees,
   removeWorktree,
   createWorktree,
@@ -19,7 +21,10 @@ let screen: blessed.Widgets.Screen;
 let worktreeList: blessed.Widgets.ListElement;
 let statusBar: blessed.Widgets.BoxElement;
 let helpBar: blessed.Widgets.BoxElement;
+let headerBox: blessed.Widgets.BoxElement;
 let mainRepoPath: string;
+let currentBranch: string;
+let defaultBranch: string;
 let worktrees: WorktreeInfo[] = [];
 let selectedIndex = 0;
 
@@ -30,22 +35,23 @@ export async function interactiveCommand(): Promise<void> {
   }
 
   mainRepoPath = await getGitRoot();
+  currentBranch = await getCurrentBranch();
+  defaultBranch = await getDefaultBranch();
   const repoName = path.basename(mainRepoPath);
 
-  // Create screen
   screen = blessed.screen({
     smartCSR: true,
     title: `wt - ${repoName}`
   });
 
-  // Header
-  blessed.box({
+  // Header with repo info
+  headerBox = blessed.box({
     parent: screen,
     top: 0,
     left: 0,
     width: '100%',
     height: 1,
-    content: ` Worktrees: ${repoName}`,
+    content: ` ${repoName} (${currentBranch})`,
     style: {
       fg: 'white',
       bg: 'blue',
@@ -99,14 +105,13 @@ export async function interactiveCommand(): Promise<void> {
     left: 0,
     width: '100%',
     height: 1,
-    content: ' [n]ew  [d]elete  [c]laude  [x]codex  [p]ush  [Enter]cd  [q]uit',
+    content: ' [n]ew  [d]elete  [c]laude  [x]codex  [Enter]cd  [q]uit',
     style: {
       fg: 'black',
       bg: 'white'
     }
   });
 
-  // Load worktrees
   await refreshWorktrees();
 
   // Key bindings
@@ -120,8 +125,8 @@ export async function interactiveCommand(): Promise<void> {
     process.exit(0);
   });
 
-  screen.key(['n'], async () => {
-    await createNewWorktree();
+  screen.key(['n'], () => {
+    startCreationWizard();
   });
 
   screen.key(['d'], async () => {
@@ -134,10 +139,6 @@ export async function interactiveCommand(): Promise<void> {
 
   screen.key(['x'], async () => {
     await launchAI('codex');
-  });
-
-  screen.key(['p'], async () => {
-    await pushSelected();
   });
 
   screen.key(['enter'], () => {
@@ -190,63 +191,419 @@ function setStatus(msg: string): void {
   screen.render();
 }
 
-async function createNewWorktree(): Promise<void> {
-  const input = blessed.textbox({
+// ============ Creation Wizard ============
+
+interface WizardState {
+  branchName: string;
+  baseBranch: 'current' | 'default';
+  copyEnv: boolean;
+  pushToRemote: boolean;
+  aiTool: 'claude' | 'codex' | 'skip';
+}
+
+function startCreationWizard(): void {
+  const state: WizardState = {
+    branchName: '',
+    baseBranch: 'current',
+    copyEnv: true,
+    pushToRemote: false,
+    aiTool: 'claude'
+  };
+
+  askBranchName(state);
+}
+
+function askBranchName(state: WizardState): void {
+  const form = blessed.box({
     parent: screen,
     top: 'center',
     left: 'center',
-    width: 50,
-    height: 3,
+    width: 60,
+    height: 12,
     border: { type: 'line' },
     style: {
       fg: 'white',
       bg: 'black',
       border: { fg: 'blue' }
     },
-    label: ' Branch name ',
+    label: ' New Worktree '
+  });
+
+  blessed.text({
+    parent: form,
+    top: 1,
+    left: 2,
+    content: `Repository: ${path.basename(mainRepoPath)}`,
+    style: { fg: 'cyan' }
+  });
+
+  blessed.text({
+    parent: form,
+    top: 2,
+    left: 2,
+    content: `Current branch: ${currentBranch}`,
+    style: { fg: 'grey' }
+  });
+
+  blessed.text({
+    parent: form,
+    top: 4,
+    left: 2,
+    content: 'Branch name:',
+    style: { fg: 'white' }
+  });
+
+  const input = blessed.textbox({
+    parent: form,
+    top: 5,
+    left: 2,
+    width: 54,
+    height: 1,
+    style: {
+      fg: 'white',
+      bg: 'grey'
+    },
     inputOnFocus: true
+  });
+
+  blessed.text({
+    parent: form,
+    top: 7,
+    left: 2,
+    content: '[Enter] next  [Esc] cancel',
+    style: { fg: 'grey' }
   });
 
   input.focus();
   screen.render();
 
-  input.on('submit', async (value: string) => {
-    input.destroy();
-
+  input.on('submit', (value: string) => {
     if (!value || !value.trim()) {
-      await refreshWorktrees();
+      form.destroy();
+      screen.render();
       return;
     }
 
-    const branchName = value.trim();
-
     try {
-      validateBranchName(branchName);
+      validateBranchName(value.trim());
+      state.branchName = value.trim();
+      form.destroy();
+      askBaseBranch(state);
     } catch (e: any) {
       setStatus(`Error: ${e.message}`);
-      return;
-    }
-
-    setStatus(`Creating ${branchName}...`);
-
-    try {
-      const worktreePath = getWorktreePath(mainRepoPath, branchName);
-      await createWorktree(worktreePath, branchName);
-      await copyEnvFiles(mainRepoPath, worktreePath);
-      setStatus(`Created ${branchName}`);
-      await refreshWorktrees();
-    } catch (e: any) {
-      setStatus(`Error: ${e.message}`);
+      input.focus();
+      screen.render();
     }
   });
 
   input.on('cancel', () => {
-    input.destroy();
-    refreshWorktrees();
+    form.destroy();
+    screen.render();
   });
 
   input.readInput();
 }
+
+function askBaseBranch(state: WizardState): void {
+  const form = blessed.box({
+    parent: screen,
+    top: 'center',
+    left: 'center',
+    width: 50,
+    height: 10,
+    border: { type: 'line' },
+    style: {
+      fg: 'white',
+      bg: 'black',
+      border: { fg: 'blue' }
+    },
+    label: ' Base Branch '
+  });
+
+  blessed.text({
+    parent: form,
+    top: 1,
+    left: 2,
+    content: 'Create worktree from:',
+    style: { fg: 'white' }
+  });
+
+  const list = blessed.list({
+    parent: form,
+    top: 3,
+    left: 2,
+    width: 44,
+    height: 3,
+    keys: true,
+    vi: true,
+    style: {
+      selected: { bg: 'blue', fg: 'white' },
+      item: { fg: 'white' }
+    },
+    items: [
+      ` Current branch (${currentBranch})`,
+      ` Default branch (${defaultBranch})`
+    ]
+  });
+
+  blessed.text({
+    parent: form,
+    top: 7,
+    left: 2,
+    content: '[Enter] select  [Esc] cancel',
+    style: { fg: 'grey' }
+  });
+
+  list.focus();
+  screen.render();
+
+  list.on('select', (_item: blessed.Widgets.BlessedElement, index: number) => {
+    state.baseBranch = index === 0 ? 'current' : 'default';
+    form.destroy();
+    askCopyEnv(state);
+  });
+
+  list.key(['escape'], () => {
+    form.destroy();
+    screen.render();
+  });
+}
+
+function askCopyEnv(state: WizardState): void {
+  const form = blessed.box({
+    parent: screen,
+    top: 'center',
+    left: 'center',
+    width: 40,
+    height: 8,
+    border: { type: 'line' },
+    style: {
+      fg: 'white',
+      bg: 'black',
+      border: { fg: 'blue' }
+    },
+    label: ' Environment Files '
+  });
+
+  blessed.text({
+    parent: form,
+    top: 1,
+    left: 2,
+    content: 'Copy .env files to worktree?',
+    style: { fg: 'white' }
+  });
+
+  const list = blessed.list({
+    parent: form,
+    top: 3,
+    left: 2,
+    width: 34,
+    height: 2,
+    keys: true,
+    vi: true,
+    style: {
+      selected: { bg: 'blue', fg: 'white' },
+      item: { fg: 'white' }
+    },
+    items: [' Yes (recommended)', ' No']
+  });
+
+  list.focus();
+  screen.render();
+
+  list.on('select', (_item: blessed.Widgets.BlessedElement, index: number) => {
+    state.copyEnv = index === 0;
+    form.destroy();
+    askPushToRemote(state);
+  });
+
+  list.key(['escape'], () => {
+    form.destroy();
+    screen.render();
+  });
+}
+
+function askPushToRemote(state: WizardState): void {
+  const form = blessed.box({
+    parent: screen,
+    top: 'center',
+    left: 'center',
+    width: 45,
+    height: 8,
+    border: { type: 'line' },
+    style: {
+      fg: 'white',
+      bg: 'black',
+      border: { fg: 'blue' }
+    },
+    label: ' Push to Remote '
+  });
+
+  blessed.text({
+    parent: form,
+    top: 1,
+    left: 2,
+    content: 'Push branch to GitHub immediately?',
+    style: { fg: 'white' }
+  });
+
+  const list = blessed.list({
+    parent: form,
+    top: 3,
+    left: 2,
+    width: 39,
+    height: 2,
+    keys: true,
+    vi: true,
+    style: {
+      selected: { bg: 'blue', fg: 'white' },
+      item: { fg: 'white' }
+    },
+    items: [' No (push later)', ' Yes (visible on GitHub now)']
+  });
+
+  list.focus();
+  screen.render();
+
+  list.on('select', (_item: blessed.Widgets.BlessedElement, index: number) => {
+    state.pushToRemote = index === 1;
+    form.destroy();
+    askAITool(state);
+  });
+
+  list.key(['escape'], () => {
+    form.destroy();
+    screen.render();
+  });
+}
+
+function askAITool(state: WizardState): void {
+  const form = blessed.box({
+    parent: screen,
+    top: 'center',
+    left: 'center',
+    width: 40,
+    height: 10,
+    border: { type: 'line' },
+    style: {
+      fg: 'white',
+      bg: 'black',
+      border: { fg: 'blue' }
+    },
+    label: ' Launch AI Tool '
+  });
+
+  blessed.text({
+    parent: form,
+    top: 1,
+    left: 2,
+    content: 'Which AI assistant to launch?',
+    style: { fg: 'white' }
+  });
+
+  const list = blessed.list({
+    parent: form,
+    top: 3,
+    left: 2,
+    width: 34,
+    height: 3,
+    keys: true,
+    vi: true,
+    style: {
+      selected: { bg: 'blue', fg: 'white' },
+      item: { fg: 'white' }
+    },
+    items: [' Claude Code', ' Codex', ' Skip (just create worktree)']
+  });
+
+  list.focus();
+  screen.render();
+
+  list.on('select', (_item: blessed.Widgets.BlessedElement, index: number) => {
+    state.aiTool = index === 0 ? 'claude' : index === 1 ? 'codex' : 'skip';
+    form.destroy();
+    executeCreation(state);
+  });
+
+  list.key(['escape'], () => {
+    form.destroy();
+    screen.render();
+  });
+}
+
+async function executeCreation(state: WizardState): Promise<void> {
+  const { branchName, baseBranch, copyEnv, pushToRemote, aiTool } = state;
+
+  setStatus(`Creating ${branchName}...`);
+
+  try {
+    // If using default branch, checkout to it first temporarily
+    if (baseBranch === 'default' && currentBranch !== defaultBranch) {
+      // We need to create the branch from the default branch
+      // Use git worktree add with a start point
+      const worktreePath = getWorktreePath(mainRepoPath, branchName);
+      const { execFile } = await import('child_process');
+      const { promisify } = await import('util');
+      const execFileAsync = promisify(execFile);
+
+      await execFileAsync('git', ['worktree', 'add', '-b', branchName, '--', worktreePath, defaultBranch]);
+
+      if (copyEnv) {
+        await copyEnvFiles(mainRepoPath, worktreePath);
+      }
+
+      if (pushToRemote) {
+        setStatus(`Pushing ${branchName}...`);
+        await pushBranch(branchName, worktreePath);
+      }
+
+      await refreshWorktrees();
+      setStatus(`Created ${branchName}`);
+
+      if (aiTool !== 'skip') {
+        await launchInWorktree(worktreePath, aiTool);
+      }
+    } else {
+      // Create from current branch (default behavior)
+      const worktreePath = getWorktreePath(mainRepoPath, branchName);
+      await createWorktree(worktreePath, branchName);
+
+      if (copyEnv) {
+        await copyEnvFiles(mainRepoPath, worktreePath);
+      }
+
+      if (pushToRemote) {
+        setStatus(`Pushing ${branchName}...`);
+        await pushBranch(branchName, worktreePath);
+      }
+
+      await refreshWorktrees();
+      setStatus(`Created ${branchName}`);
+
+      if (aiTool !== 'skip') {
+        await launchInWorktree(worktreePath, aiTool);
+      }
+    }
+  } catch (e: any) {
+    setStatus(`Error: ${e.message}`);
+  }
+}
+
+async function launchInWorktree(worktreePath: string, tool: AITool): Promise<void> {
+  const available = await isToolAvailable(tool);
+  if (!available) {
+    setStatus(`${tool} is not installed`);
+    return;
+  }
+
+  setStatus(`Launching ${tool}...`);
+  screen.destroy();
+  launchAITool({ cwd: worktreePath, tool });
+  console.log(`\n${tool} launched in: ${worktreePath}\n`);
+  process.exit(0);
+}
+
+// ============ Management Actions ============
 
 async function deleteSelected(): Promise<void> {
   const wt = worktrees[selectedIndex];
@@ -308,22 +665,8 @@ async function launchAI(tool: AITool): Promise<void> {
   }
 
   setStatus(`Launching ${tool}...`);
+  screen.destroy();
   launchAITool({ cwd: wt.path, tool });
-  setStatus(`${tool} launched in ${path.basename(wt.path)}`);
-}
-
-async function pushSelected(): Promise<void> {
-  const wt = worktrees[selectedIndex];
-  if (!wt || !wt.branch) {
-    setStatus('No branch to push');
-    return;
-  }
-
-  setStatus(`Pushing ${wt.branch}...`);
-  try {
-    await pushBranch(wt.branch, wt.path);
-    setStatus(`Pushed ${wt.branch} to origin`);
-  } catch (e: any) {
-    setStatus(`Error: ${e.message}`);
-  }
+  console.log(`\n${tool} launched in: ${path.basename(wt.path)}\n`);
+  process.exit(0);
 }

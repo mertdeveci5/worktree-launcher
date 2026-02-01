@@ -38,26 +38,35 @@ Requires Node.js 18+ and git.
 
 ## Interactive Mode (TUI)
 
-Run `wt` with no arguments to open a terminal UI similar to lazygit:
+Run `wt` with no arguments to open a terminal UI:
 
 ```bash
 wt
 ```
 
-The TUI displays all worktrees in a navigable list with keyboard shortcuts:
+The TUI shows your repo name, current branch, and all existing worktrees. Use keyboard shortcuts to manage them:
 
 | Key | Action |
 |-----|--------|
-| `n` | Create new worktree |
+| `n` | Create new worktree (guided wizard) |
 | `d` | Delete selected worktree |
 | `c` | Launch Claude Code in selected worktree |
 | `x` | Launch Codex in selected worktree |
-| `p` | Push branch to remote |
 | `Enter` | Print cd command for selected worktree |
 | `r` | Refresh worktree list |
 | `q` | Quit |
 
-Navigate with arrow keys or vim-style `j`/`k`. The status bar shows the full path of the selected worktree.
+Navigate with arrow keys or vim-style `j`/`k`.
+
+### Creating a New Worktree
+
+Press `n` to start the guided creation wizard:
+
+1. **Branch name** - Enter the name for your new branch
+2. **Base branch** - Create from current branch or default branch (main/master)
+3. **Copy .env files** - Copy environment files to the new worktree
+4. **Push to remote** - Push branch to GitHub immediately
+5. **Launch AI tool** - Choose Claude Code, Codex, or skip
 
 ## Commands
 
