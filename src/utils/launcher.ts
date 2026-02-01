@@ -16,17 +16,12 @@ export interface LaunchOptions {
 export function launchAITool(options: LaunchOptions): void {
   const { cwd, tool } = options;
 
-  // Spawn the tool in the worktree directory
-  // Use stdio: 'inherit' to pass through input/output
-  const child = spawn(tool, [], {
+  // Run the tool directly via shell
+  spawn(tool, [], {
     cwd,
     stdio: 'inherit',
-    // Detach so the CLI can exit
-    detached: true,
+    shell: true,
   });
-
-  // Unref to allow parent process to exit
-  child.unref();
 }
 
 /**
