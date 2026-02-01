@@ -16,11 +16,10 @@ export interface LaunchOptions {
 export function launchAITool(options: LaunchOptions): void {
   const { cwd, tool } = options;
 
-  // Run the tool directly via shell
+  // Run the tool directly (no shell for security)
   spawn(tool, [], {
     cwd,
     stdio: 'inherit',
-    shell: true,
   });
 }
 

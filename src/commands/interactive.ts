@@ -210,7 +210,7 @@ function showNewWorktreeForm(): void {
   input.focus();
   screen.render();
 
-  input.on('submit', () => {
+  input.on('submit', async () => {
     const value = input.getValue()?.trim();
     if (!value) {
       form.destroy();
@@ -223,11 +223,10 @@ function showNewWorktreeForm(): void {
       validateBranchName(value);
       form.destroy();
       screen.render();
-      showAIToolSelector(value);
+      await createNewWorktree(value);
     } catch (e: any) {
       setStatus(`Error: ${e.message}`);
-      input.clearValue();
-      input.focus();
+      worktreeList.focus();
       screen.render();
     }
   });
@@ -241,129 +240,18 @@ function showNewWorktreeForm(): void {
   input.readInput();
 }
 
-function showAIToolSelector(branchName: string): void {
-  let handled = false;
-
-  const form = blessed.box({
-    parent: screen,
-    top: 'center',
-    left: 'center',
-    width: 40,
-    height: 9,
-    border: { type: 'line' },
-    style: { fg: 'default', border: { fg: 'cyan' } },
-    label: ' Launch AI Tool '
-  });
-
-  blessed.text({
-    parent: form,
-    top: 1,
-    left: 2,
-    content: 'Which AI assistant to launch?',
-    style: { fg: 'default' }
-  });
-
-  blessed.text({
-    parent: form,
-    top: 3,
-    left: 2,
-    content: '  [1] Claude Code',
-    style: { fg: 'default' }
-  });
-
-  blessed.text({
-    parent: form,
-    top: 4,
-    left: 2,
-    content: '  [2] Codex',
-    style: { fg: 'default' }
-  });
-
-  blessed.text({
-    parent: form,
-    top: 5,
-    left: 2,
-    content: '  [3] Skip',
-    style: { fg: 'default' }
-  });
-
-  blessed.text({
-    parent: form,
-    top: 7,
-    left: 2,
-    content: '[Esc] cancel',
-    style: { fg: 'cyan' }
-  });
-
-  screen.render();
-
-  const cleanup = (): void => {
-    screen.unkey(['1'], onKey1);
-    screen.unkey(['2'], onKey2);
-    screen.unkey(['3'], onKey3);
-    screen.unkey(['escape'], onEscape);
-  };
-
-  const selectTool = async (tool: AITool | null): Promise<void> => {
-    if (handled) return;
-    handled = true;
-    cleanup();
-    form.destroy();
-    screen.render();
-    try {
-      await createNewWorktree(branchName, tool);
-    } catch (e: any) {
-      setStatus(`Error: ${e.message}`);
-      worktreeList.focus();
-      screen.render();
-    }
-  };
-
-  const cancel = (): void => {
-    if (handled) return;
-    handled = true;
-    cleanup();
-    form.destroy();
-    screen.render();
-    worktreeList.focus();
-  };
-
-  const onKey1 = () => selectTool('claude');
-  const onKey2 = () => selectTool('codex');
-  const onKey3 = () => selectTool(null);
-  const onEscape = () => cancel();
-
-  screen.key(['1'], onKey1);
-  screen.key(['2'], onKey2);
-  screen.key(['3'], onKey3);
-  screen.key(['escape'], onEscape);
-}
-
-async function createNewWorktree(branchName: string, tool: AITool | null): Promise<void> {
+async function createNewWorktree(branchName: string): Promise<void> {
   setStatus(`Creating ${branchName}...`);
   screen.render();
 
   try {
     const worktreePath = getWorktreePath(mainRepoPath, branchName);
-    setStatus(`Path: ${worktreePath}`);
-    screen.render();
-
     await createWorktree(worktreePath, branchName);
-    setStatus(`Worktree created, copying .env...`);
-    screen.render();
-
     await copyEnvFiles(mainRepoPath, worktreePath);
-    setStatus(`Done! Refreshing list...`);
-    screen.render();
-
     await refreshWorktrees();
-    setStatus(`Created ${branchName}`);
+    setStatus(`Created ${branchName} - press [c] for Claude or [x] for Codex`);
     worktreeList.focus();
     screen.render();
-
-    if (tool) {
-      await launchInWorktree(worktreePath, tool);
-    }
   } catch (e: any) {
     setStatus(`Error: ${e.message}`);
     worktreeList.focus();
@@ -372,19 +260,6 @@ async function createNewWorktree(branchName: string, tool: AITool | null): Promi
 }
 
 // ============ Actions ============
-
-async function launchInWorktree(worktreePath: string, tool: AITool): Promise<void> {
-  const available = await isToolAvailable(tool);
-  if (!available) {
-    setStatus(`${tool} is not installed`);
-    return;
-  }
-
-  cleanupScreen();
-  launchAITool({ cwd: worktreePath, tool });
-  console.log(`\n${tool} launched in: ${worktreePath}\n`);
-  process.exit(0);
-}
 
 async function launchTool(tool: AITool): Promise<void> {
   const wt = worktrees[selectedIndex];
