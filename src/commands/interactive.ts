@@ -286,10 +286,12 @@ function askBranchName(state: WizardState): void {
   input.focus();
   screen.render();
 
-  input.on('submit', (value: string) => {
+  input.on('submit', () => {
+    const value = input.getValue();
     if (!value || !value.trim()) {
       form.destroy();
       screen.render();
+      worktreeList.focus();
       return;
     }
 
@@ -297,9 +299,11 @@ function askBranchName(state: WizardState): void {
       validateBranchName(value.trim());
       state.branchName = value.trim();
       form.destroy();
+      screen.render();
       askBaseBranch(state);
     } catch (e: any) {
       setStatus(`Error: ${e.message}`);
+      input.clearValue();
       input.focus();
       screen.render();
     }
@@ -308,6 +312,7 @@ function askBranchName(state: WizardState): void {
   input.on('cancel', () => {
     form.destroy();
     screen.render();
+    worktreeList.focus();
   });
 
   input.readInput();
@@ -368,12 +373,14 @@ function askBaseBranch(state: WizardState): void {
   list.on('select', (_item: blessed.Widgets.BlessedElement, index: number) => {
     state.baseBranch = index === 0 ? 'current' : 'default';
     form.destroy();
+    screen.render();
     askCopyEnv(state);
   });
 
   list.key(['escape'], () => {
     form.destroy();
     screen.render();
+    worktreeList.focus();
   });
 }
 
@@ -421,12 +428,14 @@ function askCopyEnv(state: WizardState): void {
   list.on('select', (_item: blessed.Widgets.BlessedElement, index: number) => {
     state.copyEnv = index === 0;
     form.destroy();
+    screen.render();
     askPushToRemote(state);
   });
 
   list.key(['escape'], () => {
     form.destroy();
     screen.render();
+    worktreeList.focus();
   });
 }
 
@@ -474,12 +483,14 @@ function askPushToRemote(state: WizardState): void {
   list.on('select', (_item: blessed.Widgets.BlessedElement, index: number) => {
     state.pushToRemote = index === 1;
     form.destroy();
+    screen.render();
     askAITool(state);
   });
 
   list.key(['escape'], () => {
     form.destroy();
     screen.render();
+    worktreeList.focus();
   });
 }
 
@@ -527,12 +538,14 @@ function askAITool(state: WizardState): void {
   list.on('select', (_item: blessed.Widgets.BlessedElement, index: number) => {
     state.aiTool = index === 0 ? 'claude' : index === 1 ? 'codex' : 'skip';
     form.destroy();
+    screen.render();
     executeCreation(state);
   });
 
   list.key(['escape'], () => {
     form.destroy();
     screen.render();
+    worktreeList.focus();
   });
 }
 
@@ -564,6 +577,7 @@ async function executeCreation(state: WizardState): Promise<void> {
 
       await refreshWorktrees();
       setStatus(`Created ${branchName}`);
+      worktreeList.focus();
 
       if (aiTool !== 'skip') {
         await launchInWorktree(worktreePath, aiTool);
@@ -584,6 +598,7 @@ async function executeCreation(state: WizardState): Promise<void> {
 
       await refreshWorktrees();
       setStatus(`Created ${branchName}`);
+      worktreeList.focus();
 
       if (aiTool !== 'skip') {
         await launchInWorktree(worktreePath, aiTool);
@@ -591,6 +606,8 @@ async function executeCreation(state: WizardState): Promise<void> {
     }
   } catch (e: any) {
     setStatus(`Error: ${e.message}`);
+    worktreeList.focus();
+    screen.render();
   }
 }
 
