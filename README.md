@@ -73,6 +73,7 @@ wt new <branch-name> [options]
 Options:
 - `-i, --install` - Run package manager install after creating worktree
 - `-s, --skip-launch` - Create worktree without launching AI assistant
+- `-p, --push` - Push branch to remote (makes it visible on GitHub immediately)
 
 Examples:
 
@@ -80,11 +81,17 @@ Examples:
 # Create worktree and launch AI selector
 wt new feature-auth
 
+# Create worktree and push to GitHub
+wt new feature-auth --push
+
 # Create worktree and run npm/yarn/pnpm install
 wt new feature-auth --install
 
 # Just create the worktree
 wt new feature-auth --skip-launch
+
+# Combine options
+wt new feature-auth --push --install --skip-launch
 ```
 
 The worktree is created at `../<repo-name>-<branch-name>/`. For example, if you run `wt new feature-auth` in `/code/myproject`, the worktree is created at `/code/myproject-feature-auth`.
