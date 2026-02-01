@@ -41,7 +41,10 @@ export async function interactiveCommand(): Promise<void> {
 
   screen = blessed.screen({
     smartCSR: true,
-    title: `wt - ${repoName}`
+    fullUnicode: true,
+    title: `wt - ${repoName}`,
+    terminal: 'xterm-256color',
+    warnings: false
   });
 
   // Header with repo info
@@ -53,9 +56,8 @@ export async function interactiveCommand(): Promise<void> {
     height: 1,
     content: ` ${repoName} (${currentBranch})`,
     style: {
-      fg: 'white',
-      bg: 'blue',
-      bold: true
+      fg: 'black',
+      bg: 'cyan'
     }
   });
 
@@ -71,16 +73,16 @@ export async function interactiveCommand(): Promise<void> {
     mouse: true,
     style: {
       selected: {
-        bg: 'blue',
-        fg: 'white'
+        bg: 'cyan',
+        fg: 'black'
       },
       item: {
-        fg: 'white'
+        fg: 'default'
       }
     },
     scrollbar: {
       ch: ' ',
-      style: { bg: 'grey' }
+      style: { bg: 'cyan' }
     }
   });
 
@@ -93,8 +95,7 @@ export async function interactiveCommand(): Promise<void> {
     height: 1,
     content: '',
     style: {
-      fg: 'yellow',
-      bg: 'black'
+      fg: 'green'
     }
   });
 
@@ -108,7 +109,7 @@ export async function interactiveCommand(): Promise<void> {
     content: ' [n]ew  [d]elete  [c]laude  [x]codex  [Enter]cd  [q]uit',
     style: {
       fg: 'black',
-      bg: 'white'
+      bg: 'cyan'
     }
   });
 
@@ -121,8 +122,7 @@ export async function interactiveCommand(): Promise<void> {
   });
 
   screen.key(['q', 'C-c'], () => {
-    screen.destroy();
-    process.exit(0);
+    cleanExit();
   });
 
   screen.key(['n'], () => {
@@ -144,9 +144,7 @@ export async function interactiveCommand(): Promise<void> {
   screen.key(['enter'], () => {
     const wt = worktrees[selectedIndex];
     if (wt) {
-      screen.destroy();
-      console.log(`\ncd "${wt.path}"\n`);
-      process.exit(0);
+      cleanExit(`\ncd "${wt.path}"\n`);
     }
   });
 
@@ -191,6 +189,18 @@ function setStatus(msg: string): void {
   screen.render();
 }
 
+function cleanExit(message?: string): void {
+  screen.program.clear();
+  screen.program.disableMouse();
+  screen.program.showCursor();
+  screen.program.normalBuffer();
+  screen.destroy();
+  if (message) {
+    console.log(message);
+  }
+  process.exit(0);
+}
+
 // ============ Creation Wizard ============
 
 interface WizardState {
@@ -222,9 +232,8 @@ function askBranchName(state: WizardState): void {
     height: 12,
     border: { type: 'line' },
     style: {
-      fg: 'white',
-      bg: 'black',
-      border: { fg: 'blue' }
+      fg: 'default',
+      border: { fg: 'cyan' }
     },
     label: ' New Worktree '
   });
@@ -242,7 +251,7 @@ function askBranchName(state: WizardState): void {
     top: 2,
     left: 2,
     content: `Current branch: ${currentBranch}`,
-    style: { fg: 'grey' }
+    style: { fg: 'default' }
   });
 
   blessed.text({
@@ -250,7 +259,7 @@ function askBranchName(state: WizardState): void {
     top: 4,
     left: 2,
     content: 'Branch name:',
-    style: { fg: 'white' }
+    style: { fg: 'default' }
   });
 
   const input = blessed.textbox({
@@ -260,8 +269,8 @@ function askBranchName(state: WizardState): void {
     width: 54,
     height: 1,
     style: {
-      fg: 'white',
-      bg: 'grey'
+      fg: 'black',
+      bg: 'white'
     },
     inputOnFocus: true
   });
@@ -271,7 +280,7 @@ function askBranchName(state: WizardState): void {
     top: 7,
     left: 2,
     content: '[Enter] next  [Esc] cancel',
-    style: { fg: 'grey' }
+    style: { fg: 'cyan' }
   });
 
   input.focus();
@@ -313,9 +322,8 @@ function askBaseBranch(state: WizardState): void {
     height: 10,
     border: { type: 'line' },
     style: {
-      fg: 'white',
-      bg: 'black',
-      border: { fg: 'blue' }
+      fg: 'default',
+      border: { fg: 'cyan' }
     },
     label: ' Base Branch '
   });
@@ -325,7 +333,7 @@ function askBaseBranch(state: WizardState): void {
     top: 1,
     left: 2,
     content: 'Create worktree from:',
-    style: { fg: 'white' }
+    style: { fg: 'default' }
   });
 
   const list = blessed.list({
@@ -337,8 +345,8 @@ function askBaseBranch(state: WizardState): void {
     keys: true,
     vi: true,
     style: {
-      selected: { bg: 'blue', fg: 'white' },
-      item: { fg: 'white' }
+      selected: { bg: 'cyan', fg: 'black' },
+      item: { fg: 'default' }
     },
     items: [
       ` Current branch (${currentBranch})`,
@@ -351,7 +359,7 @@ function askBaseBranch(state: WizardState): void {
     top: 7,
     left: 2,
     content: '[Enter] select  [Esc] cancel',
-    style: { fg: 'grey' }
+    style: { fg: 'cyan' }
   });
 
   list.focus();
@@ -378,9 +386,8 @@ function askCopyEnv(state: WizardState): void {
     height: 8,
     border: { type: 'line' },
     style: {
-      fg: 'white',
-      bg: 'black',
-      border: { fg: 'blue' }
+      fg: 'default',
+      border: { fg: 'cyan' }
     },
     label: ' Environment Files '
   });
@@ -390,7 +397,7 @@ function askCopyEnv(state: WizardState): void {
     top: 1,
     left: 2,
     content: 'Copy .env files to worktree?',
-    style: { fg: 'white' }
+    style: { fg: 'default' }
   });
 
   const list = blessed.list({
@@ -402,8 +409,8 @@ function askCopyEnv(state: WizardState): void {
     keys: true,
     vi: true,
     style: {
-      selected: { bg: 'blue', fg: 'white' },
-      item: { fg: 'white' }
+      selected: { bg: 'cyan', fg: 'black' },
+      item: { fg: 'default' }
     },
     items: [' Yes (recommended)', ' No']
   });
@@ -432,9 +439,8 @@ function askPushToRemote(state: WizardState): void {
     height: 8,
     border: { type: 'line' },
     style: {
-      fg: 'white',
-      bg: 'black',
-      border: { fg: 'blue' }
+      fg: 'default',
+      border: { fg: 'cyan' }
     },
     label: ' Push to Remote '
   });
@@ -444,7 +450,7 @@ function askPushToRemote(state: WizardState): void {
     top: 1,
     left: 2,
     content: 'Push branch to GitHub immediately?',
-    style: { fg: 'white' }
+    style: { fg: 'default' }
   });
 
   const list = blessed.list({
@@ -456,8 +462,8 @@ function askPushToRemote(state: WizardState): void {
     keys: true,
     vi: true,
     style: {
-      selected: { bg: 'blue', fg: 'white' },
-      item: { fg: 'white' }
+      selected: { bg: 'cyan', fg: 'black' },
+      item: { fg: 'default' }
     },
     items: [' No (push later)', ' Yes (visible on GitHub now)']
   });
@@ -486,9 +492,8 @@ function askAITool(state: WizardState): void {
     height: 10,
     border: { type: 'line' },
     style: {
-      fg: 'white',
-      bg: 'black',
-      border: { fg: 'blue' }
+      fg: 'default',
+      border: { fg: 'cyan' }
     },
     label: ' Launch AI Tool '
   });
@@ -498,7 +503,7 @@ function askAITool(state: WizardState): void {
     top: 1,
     left: 2,
     content: 'Which AI assistant to launch?',
-    style: { fg: 'white' }
+    style: { fg: 'default' }
   });
 
   const list = blessed.list({
@@ -510,8 +515,8 @@ function askAITool(state: WizardState): void {
     keys: true,
     vi: true,
     style: {
-      selected: { bg: 'blue', fg: 'white' },
-      item: { fg: 'white' }
+      selected: { bg: 'cyan', fg: 'black' },
+      item: { fg: 'default' }
     },
     items: [' Claude Code', ' Codex', ' Skip (just create worktree)']
   });
@@ -597,6 +602,10 @@ async function launchInWorktree(worktreePath: string, tool: AITool): Promise<voi
   }
 
   setStatus(`Launching ${tool}...`);
+  screen.program.clear();
+  screen.program.disableMouse();
+  screen.program.showCursor();
+  screen.program.normalBuffer();
   screen.destroy();
   launchAITool({ cwd: worktreePath, tool });
   console.log(`\n${tool} launched in: ${worktreePath}\n`);
@@ -624,8 +633,7 @@ async function deleteSelected(): Promise<void> {
     height: 5,
     border: { type: 'line' },
     style: {
-      fg: 'white',
-      bg: 'black',
+      fg: 'default',
       border: { fg: 'red' }
     }
   });
@@ -665,6 +673,10 @@ async function launchAI(tool: AITool): Promise<void> {
   }
 
   setStatus(`Launching ${tool}...`);
+  screen.program.clear();
+  screen.program.disableMouse();
+  screen.program.showCursor();
+  screen.program.normalBuffer();
   screen.destroy();
   launchAITool({ cwd: wt.path, tool });
   console.log(`\n${tool} launched in: ${path.basename(wt.path)}\n`);
