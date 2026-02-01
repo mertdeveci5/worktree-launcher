@@ -5,13 +5,18 @@ import { newCommand } from './commands/new.js';
 import { listCommand } from './commands/list.js';
 import { cleanCommand } from './commands/clean.js';
 import { removeCommand } from './commands/remove.js';
+import { interactiveCommand } from './commands/interactive.js';
 
 const program = new Command();
 
 program
   .name('wt')
   .description('CLI tool to streamline git worktrees with AI coding assistants')
-  .version('1.0.3');
+  .version('1.1.0')
+  .action(async () => {
+    // Default action: interactive mode
+    await interactiveCommand();
+  });
 
 program
   .command('new <branch-name>')

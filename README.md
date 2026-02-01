@@ -36,7 +36,31 @@ npm install -g worktree-launcher
 
 Requires Node.js 18+ and git.
 
+## Interactive Mode
+
+Run `wt` with no arguments to enter interactive mode:
+
+```bash
+wt
+```
+
+This shows a navigable list of all worktrees where you can:
+- Select a worktree to see actions
+- Launch an AI assistant in any worktree
+- Delete worktrees
+- Create new worktrees
+
+Use arrow keys to navigate and Enter to select.
+
 ## Commands
+
+### wt
+
+Run with no arguments for interactive mode.
+
+```bash
+wt
+```
 
 ### wt new
 
@@ -108,15 +132,15 @@ A typical development workflow:
 # 1. Start in your main repository
 cd ~/code/myproject
 
-# 2. Create a worktree for a new feature
+# 2. Open interactive mode to see all worktrees
+wt
+
+# 3. Or create a worktree directly
 wt new feature-user-auth
 # Select Claude Code or Codex from the prompt
 # AI assistant launches in the new worktree
 
-# 3. Work on the feature, commit, push, create PR
-
-# 4. Back in main repo, check your worktrees
-wt list
+# 4. Work on the feature, commit, push, create PR
 
 # 5. After PR is merged, clean up
 wt clean
