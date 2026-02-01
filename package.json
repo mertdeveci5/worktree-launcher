@@ -1,6 +1,6 @@
 {
   "name": "worktree-launcher",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "CLI tool for managing git worktrees with AI coding assistants",
   "type": "module",
   "main": "./dist/index.js",

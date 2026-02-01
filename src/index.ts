@@ -11,7 +11,7 @@ const program = new Command();
 program
   .name('wt')
   .description('CLI tool to streamline git worktrees with AI coding assistants')
-  .version('1.0.0');
+  .version('1.0.3');
 
 program
   .command('new <branch-name>')
