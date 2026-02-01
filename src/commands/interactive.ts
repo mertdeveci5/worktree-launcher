@@ -295,12 +295,19 @@ function showAIToolSelector(branchName: string): void {
     style: { fg: 'cyan' }
   });
 
-  form.focus();
   screen.render();
+
+  const cleanup = (): void => {
+    screen.unkey(['1'], onKey1);
+    screen.unkey(['2'], onKey2);
+    screen.unkey(['3'], onKey3);
+    screen.unkey(['escape'], onEscape);
+  };
 
   const selectTool = async (tool: AITool | null): Promise<void> => {
     if (handled) return;
     handled = true;
+    cleanup();
     form.destroy();
     screen.render();
     try {
@@ -315,15 +322,21 @@ function showAIToolSelector(branchName: string): void {
   const cancel = (): void => {
     if (handled) return;
     handled = true;
+    cleanup();
     form.destroy();
     screen.render();
     worktreeList.focus();
   };
 
-  form.key(['1'], () => selectTool('claude'));
-  form.key(['2'], () => selectTool('codex'));
-  form.key(['3'], () => selectTool(null));
-  form.key(['escape'], cancel);
+  const onKey1 = () => selectTool('claude');
+  const onKey2 = () => selectTool('codex');
+  const onKey3 = () => selectTool(null);
+  const onEscape = () => cancel();
+
+  screen.key(['1'], onKey1);
+  screen.key(['2'], onKey2);
+  screen.key(['3'], onKey3);
+  screen.key(['escape'], onEscape);
 }
 
 async function createNewWorktree(branchName: string, tool: AITool | null): Promise<void> {

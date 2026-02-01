@@ -12,7 +12,7 @@ const program = new Command();
 program
   .name('wt')
   .description('CLI tool to streamline git worktrees with AI coding assistants')
-  .version('1.5.5')
+  .version('1.5.6')
   .action(async () => {
     // Default action: interactive mode
     await interactiveCommand();
