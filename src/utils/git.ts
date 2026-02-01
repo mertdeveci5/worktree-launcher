@@ -89,18 +89,18 @@ export async function getDefaultBranch(): Promise<string> {
 
 /**
  * Create a worktree at the specified path for the given branch
+ * @param startPoint - Optional branch/commit to create the new branch from
  */
-export async function createWorktree(worktreePath: string, branchName: string): Promise<void> {
+export async function createWorktree(worktreePath: string, branchName: string, startPoint?: string): Promise<void> {
   validateBranchName(branchName);
 
-  // Check if branch exists, if not create it with -b flag
   const exists = await branchExists(branchName);
 
   if (exists) {
-    // Use -- to prevent branch name being interpreted as flag
     await execFileAsync('git', ['worktree', 'add', '--', worktreePath, branchName]);
+  } else if (startPoint) {
+    await execFileAsync('git', ['worktree', 'add', '-b', branchName, '--', worktreePath, startPoint]);
   } else {
-    // Create new branch and worktree in one command
     await execFileAsync('git', ['worktree', 'add', '-b', branchName, '--', worktreePath]);
   }
 }

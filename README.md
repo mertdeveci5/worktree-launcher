@@ -44,14 +44,15 @@ Run `wt` with no arguments to open a terminal UI:
 wt
 ```
 
-The TUI shows your repo name, current branch, and all existing worktrees. Use keyboard shortcuts to manage them:
+The TUI shows your repo name, current branch, and all existing worktrees.
 
 | Key | Action |
 |-----|--------|
-| `n` | Create new worktree (guided wizard) |
+| `n` | Create new worktree |
 | `d` | Delete selected worktree |
 | `c` | Launch Claude Code in selected worktree |
 | `x` | Launch Codex in selected worktree |
+| `p` | Push selected branch to remote |
 | `Enter` | Print cd command for selected worktree |
 | `r` | Refresh worktree list |
 | `q` | Quit |
@@ -60,13 +61,12 @@ Navigate with arrow keys or vim-style `j`/`k`.
 
 ### Creating a New Worktree
 
-Press `n` to start the guided creation wizard:
+Press `n` to create a new worktree:
 
-1. **Branch name** - Enter the name for your new branch
-2. **Base branch** - Create from current branch or default branch (main/master)
-3. **Copy .env files** - Copy environment files to the new worktree
-4. **Push to remote** - Push branch to GitHub immediately
-5. **Launch AI tool** - Choose Claude Code, Codex, or skip
+1. Enter the branch name
+2. Choose AI tool to launch (Claude Code, Codex, or Skip)
+
+The worktree is created from your current branch, .env files are copied automatically.
 
 ## Commands
 
