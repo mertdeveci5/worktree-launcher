@@ -1,0 +1,54 @@
+{
+  "name": "worktree-launcher",
+  "version": "1.0.1",
+  "description": "CLI tool for managing git worktrees with AI coding assistants",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "wt": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "dev": "tsup src/index.ts --format esm --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mertdeveci5/worktree-launcher.git"
+  },
+  "homepage": "https://github.com/mertdeveci5/worktree-launcher#readme",
+  "bugs": {
+    "url": "https://github.com/mertdeveci5/worktree-launcher/issues"
+  },
+  "keywords": [
+    "git",
+    "worktree",
+    "cli",
+    "claude",
+    "codex",
+    "ai",
+    "developer-tools"
+  ],
+  "author": "mertdeveci5",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "glob": "^10.4.5",
+    "inquirer": "^9.3.7",
+    "ora": "^8.1.0"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^20.17.9",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist"
+  ]
+}
