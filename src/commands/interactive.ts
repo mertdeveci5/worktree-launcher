@@ -279,11 +279,23 @@ function showAIToolSelector(branchName: string): void {
   list.focus();
   screen.render();
 
-  list.on('select', (_item: blessed.Widgets.BlessedElement, index: number) => {
+  list.on('select', async (_item: blessed.Widgets.BlessedElement, index: number) => {
     const tool = index === 0 ? 'claude' : index === 1 ? 'codex' : null;
     form.destroy();
+    setStatus(`Selected: ${tool ?? 'skip'}, creating worktree...`);
     screen.render();
-    createNewWorktree(branchName, tool);
+    try {
+      await createNewWorktree(branchName, tool);
+    } catch (e: any) {
+      setStatus(`Error: ${e.message}`);
+      worktreeList.focus();
+      screen.render();
+    }
+  });
+
+  // Also handle enter key explicitly as backup
+  list.key(['enter'], () => {
+    list.emit('select', list.items[list.selected], list.selected);
   });
 
   list.key(['escape'], () => {
