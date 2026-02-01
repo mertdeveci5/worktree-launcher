@@ -36,21 +36,28 @@ npm install -g worktree-launcher
 
 Requires Node.js 18+ and git.
 
-## Interactive Mode
+## Interactive Mode (TUI)
 
-Run `wt` with no arguments to enter interactive mode:
+Run `wt` with no arguments to open a terminal UI similar to lazygit:
 
 ```bash
 wt
 ```
 
-This shows a navigable list of all worktrees where you can:
-- Select a worktree to see actions
-- Launch an AI assistant in any worktree
-- Delete worktrees
-- Create new worktrees
+The TUI displays all worktrees in a navigable list with keyboard shortcuts:
 
-Use arrow keys to navigate and Enter to select.
+| Key | Action |
+|-----|--------|
+| `n` | Create new worktree |
+| `d` | Delete selected worktree |
+| `c` | Launch Claude Code in selected worktree |
+| `x` | Launch Codex in selected worktree |
+| `p` | Push branch to remote |
+| `Enter` | Print cd command for selected worktree |
+| `r` | Refresh worktree list |
+| `q` | Quit |
+
+Navigate with arrow keys or vim-style `j`/`k`. The status bar shows the full path of the selected worktree.
 
 ## Commands
 
