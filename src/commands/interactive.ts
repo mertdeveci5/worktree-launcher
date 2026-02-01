@@ -159,7 +159,7 @@ function exitScreen(message?: string): void {
   process.exit(0);
 }
 
-// ============ New Worktree (2-step wizard) ============
+// ============ New Worktree ============
 
 function showNewWorktreeForm(): void {
   const form = blessed.box({
@@ -203,7 +203,7 @@ function showNewWorktreeForm(): void {
     parent: form,
     top: 6,
     left: 2,
-    content: '[Enter] next  [Esc] cancel',
+    content: '[Enter] create  [Esc] cancel',
     style: { fg: 'cyan' }
   });
 
@@ -242,7 +242,6 @@ function showNewWorktreeForm(): void {
 
 async function createNewWorktree(branchName: string): Promise<void> {
   setStatus(`Creating ${branchName}...`);
-  screen.render();
 
   try {
     const worktreePath = getWorktreePath(mainRepoPath, branchName);
@@ -251,11 +250,9 @@ async function createNewWorktree(branchName: string): Promise<void> {
     await refreshWorktrees();
     setStatus(`Created ${branchName} - press [c] for Claude or [x] for Codex`);
     worktreeList.focus();
-    screen.render();
   } catch (e: any) {
     setStatus(`Error: ${e.message}`);
     worktreeList.focus();
-    screen.render();
   }
 }
 
